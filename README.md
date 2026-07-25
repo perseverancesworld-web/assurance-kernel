@@ -2,9 +2,9 @@
 
 Formally verified Lean 4 **Certified Transition Algebra** and Assurance Control Plane.
 
-Proof-carrying state transitions, cryptographic evidence lineage, authority bounds, and graceful degradation under assumption failure (v25.7.7).
+Proof-carrying state transitions, cryptographic evidence lineage, authority bounds, and graceful degradation under assumption failure (v25.8).
 
-## Status (v25.7.7)
+## Status (v25.8)
 
 | Area                          | Status                          |
 |-------------------------------|---------------------------------|
@@ -14,35 +14,30 @@ Proof-carrying state transitions, cryptographic evidence lineage, authority boun
 | Authority model               | Excellent                       |
 | Receipt lineage               | Complete                        |
 | State commitment              | Canonical + genuine stateHash   |
-| Concrete digest               | Pure-Lean TestDigest            |
+| Concrete digest (CI)          | Pure-Lean TestDigest            |
+| Production digest adapters    | SHA-256 & BLAKE3 (interface)    |
 | Executable multi-step tests   | Present                         |
 | Structural negative checks    | Present                         |
 | Dynamic rejection tests       | Present                         |
 | Regression theorems           | Present                         |
 | CI rejecting `sorry`          | Present                         |
-| Verification report artifact  | Present (expanded)              |
+| Verification report artifact  | Present                         |
 | Formal completeness           | ~98%                            |
 
-## Dynamic Rejection Tests (v25.7.7)
+## Cryptographic Boundary (v25.8)
 
-`Assurance/Tests/Rejection.lean` records the following as theorems:
+```
+Assurance/Crypto/
+├── Digest.lean        # abstract CryptographicDigest typeclass
+├── TestDigest.lean    # pure-Lean CI / formal reference (kept)
+├── SHA256.lean        # production adapter (interface-complete)
+└── Blake3.lean        # production adapter (interface-complete)
+```
 
-**Receipt integrity**
-- Parent-hash mismatch → cannot form `ReceiptChain`
-- Sequence gap → cannot form `ReceiptChain`
-- Timestamp regression → cannot form `ReceiptChain`
+**Rule:** The kernel never imports a concrete adapter.  
+Swapping TestDigest ↔ SHA-256 ↔ BLAKE3 requires zero changes to transition algebra, proofs, or tests.
 
-**Emergency authority**
-- Expired certificate → cannot form `ValidSignatureProof`
-- Revoked certificate → cannot form `ValidSignatureProof`
-- Insufficient quorum → cannot form `ValidSignatureProof`
-
-**Serialization**
-- Determinism (`serialize(s) = serialize(s)`)
-
-## Verification Report
-
-Every successful CI run produces and uploads `assurance-verification-report.txt` containing the full status of proofs, executable tests, and dynamic rejection tests.
+The current SHA-256 and BLAKE3 modules are deterministic placeholders that satisfy the typeclass. Replace the `hashBytes` bodies with verified implementations (pure Lean or FFI) when moving to production cryptography.
 
 ## Design Principle
 
@@ -53,7 +48,8 @@ Kernel (proved)
 Digest Interface (typeclass)
       │
       ▼
-Concrete Digest Adapter (TestDigest today, SHA-256/BLAKE3 tomorrow)
+Concrete Digest Adapter
+  (TestDigest | SHA-256 | BLAKE3 | future)
 ```
 
 ## Building & CI
@@ -62,13 +58,7 @@ Concrete Digest Adapter (TestDigest today, SHA-256/BLAKE3 tomorrow)
 lake build
 ```
 
-CI fails on any remaining `sorry` and publishes the verification report as a workflow artifact.
-
-## Roadmap remaining
-
-1. ✅ Dynamic rejection tests
-2. Optional production adapters (SHA-256 / BLAKE3)
-3. Further executable negative tests if additional dynamic modes are modelled
+CI fails on any remaining `sorry` and publishes the verification report.
 
 ## License
 

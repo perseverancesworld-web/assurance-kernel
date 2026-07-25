@@ -16,6 +16,8 @@ lean_lib Assurance where
     `Assurance.Models.DegradationRules,
     `Assurance.Crypto.Digest,
     `Assurance.Crypto.TestDigest,
+    `Assurance.Crypto.SHA256,
+    `Assurance.Crypto.Blake3,
     `Assurance.Ledger.Certified,
     `Assurance.Proofs.ReceiptChain,
     `Assurance.Execution.Transition,
