@@ -9,14 +9,16 @@ require mathlib from git
 
 @[default_target]
 lean_lib AssuranceKernel where
-  roots := #[`AssuranceKernel]
+  roots := #[`Assurance]
 
 lean_lib Assurance where
   roots := #[
     `Assurance.Models.DegradationRules,
     `Assurance.Crypto.Digest,
+    `Assurance.Crypto.TestDigest,
     `Assurance.Ledger.Certified,
     `Assurance.Proofs.ReceiptChain,
     `Assurance.Execution.Transition,
-    `Assurance.Tests.Regression
+    `Assurance.Tests.Regression,
+    `Assurance.Tests.Smoke
   ]

@@ -1,13 +1,17 @@
 /-
-  Cryptographic digest interface and concrete instances.
-  Currently abstract; concrete SHA-256 / Blake3 instance is future work.
+  Cryptographic digest typeclass (abstract boundary).
+  Concrete instances live in sibling modules.
 -/
 
-import Assurance.Models.DegradationRules
+import Mathlib.Data.ByteArray
 
 namespace Assurance.Crypto
 
--- Placeholder for future concrete instances
--- instance : CryptographicDigest ByteArray where ...
+/-- Abstract cryptographic digest interface used by the kernel. -/
+class CryptographicDigest (Digest : Type) where
+  eq_dec : DecidableEq Digest
+  zero : Digest
+  toBytes : Digest → ByteArray
+  hashBytes : ByteArray → Digest
 
 end Assurance.Crypto

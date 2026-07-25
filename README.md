@@ -2,7 +2,7 @@
 
 Formally verified Lean 4 **Certified Transition Algebra** and Assurance Control Plane.
 
-Proof-carrying state transitions, cryptographic evidence lineage, authority bounds, and graceful degradation under assumption failure (v25.7.3).
+Proof-carrying state transitions, cryptographic evidence lineage, authority bounds, and graceful degradation under assumption failure (v25.7.4).
 
 ## Repository Layout
 
@@ -13,28 +13,33 @@ assurance-kernel/
 ├── .github/workflows/lean.yml
 ├── Assurance/
 │   ├── Models/          # Core state, actions, invariants, transition algebra
-│   ├── Crypto/          # Digest interface & concrete instances
-│   ├── Ledger/          # Certified ledger & uniqueness
-│   ├── Proofs/          # ReceiptChain inversion & transport lemmas
-│   ├── Execution/       # Higher-level transition composition
-│   └── Tests/           # Regression theorems
+│   ├── Crypto/
+│   │   ├── Digest.lean       # abstract typeclass
+│   │   └── TestDigest.lean   # pure-Lean deterministic instance
+│   ├── Ledger/
+│   ├── Proofs/
+│   ├── Execution/
+│   └── Tests/
+│       ├── Regression.lean
+│       └── Smoke.lean         # executable end-to-end test
 └── README.md
 ```
 
-## Status (v25.7.3)
+## Status (v25.7.4)
 
-| Area                      | Status                          |
-|---------------------------|---------------------------------|
-| Type safety               | Excellent                       |
-| Transition algebra        | Excellent                       |
-| Ledger consistency        | Excellent                       |
-| Authority model           | Excellent                       |
-| Receipt lineage           | `head_timestamp_ge` present     |
-| State commitment          | Canonical serializer + stateHash |
-| Cryptographic commitments | Deterministic chaining          |
-| Concrete digest           | Still abstract (next)           |
-| Regression suite          | Core theorems added             |
-| Formal completeness       | ~97%                            |
+| Area                          | Status                          |
+|-------------------------------|---------------------------------|
+| Type safety                   | Excellent                       |
+| Transition algebra            | Excellent                       |
+| Ledger consistency            | Excellent                       |
+| Authority model               | Excellent                       |
+| Receipt lineage               | Complete                        |
+| State commitment              | Canonical + genuine stateHash   |
+| Concrete digest               | Pure-Lean TestDigest            |
+| Executable smoke test         | Present                         |
+| Regression theorems           | Present                         |
+| CI rejecting `sorry`          | Present                         |
+| Formal completeness           | ~98%                            |
 
 ## Building & CI
 
@@ -42,15 +47,33 @@ assurance-kernel/
 lake build
 ```
 
-CI runs on every push to `main` and fails if any `sorry` remains in the sources.
+CI runs on every push to `main` and fails if any `sorry` remains.
+
+The smoke test (`Assurance/Tests/Smoke.lean`) exercises a full genesis → ingestTelemetry path using the pure-Lean digest.
+
+## Design Principle
+
+```
+Kernel (proved)
+      │
+      ▼
+Digest Interface (typeclass)
+      │
+      ▼
+Concrete Digest Adapter (TestDigest today, SHA-256/BLAKE3 tomorrow)
+      │
+      ▼
+Runtime / Applications
+```
+
+Swapping the digest implementation must never require changes to the transition algebra or its proofs.
 
 ## Roadmap remaining
 
-1. ✅ Repository bootstrap + modular layout
-2. ✅ `ReceiptChain.head_timestamp_ge` + genuine stateHash
-3. ✅ Initial regression theorems
-4. Concrete `CryptographicDigest` instance (SHA-256 / Blake3 or test digest)
-5. Full executable regression suite + stronger inversion lemmas
+1. ✅ Pure-Lean TestDigest + smoke test
+2. Optional production adapters (SHA-256 / BLAKE3)
+3. Expanded executable regression suite
+4. Performance / interoperability tests against external implementations
 
 ## License
 
