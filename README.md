@@ -2,9 +2,9 @@
 
 Formally verified Lean 4 **Certified Transition Algebra** and Assurance Control Plane.
 
-Proof-carrying state transitions, cryptographic evidence lineage, authority bounds, and graceful degradation under assumption failure (v25.7.5).
+Proof-carrying state transitions, cryptographic evidence lineage, authority bounds, and graceful degradation under assumption failure (v25.7.6).
 
-## Status (v25.7.5)
+## Status (v25.7.6)
 
 | Area                          | Status                          |
 |-------------------------------|---------------------------------|
@@ -19,21 +19,36 @@ Proof-carrying state transitions, cryptographic evidence lineage, authority boun
 | Structural negative checks    | Present                         |
 | Regression theorems           | Present                         |
 | CI rejecting `sorry`          | Present                         |
+| Verification report artifact  | Present                         |
 | Formal completeness           | ~98%                            |
 
-## Executable Harness
+## Verification Report
 
-`Assurance/Tests/Smoke.lean` now exercises:
+Every successful CI run produces and uploads:
 
-**Positive multi-step sequence**
 ```
-genesis → tickTime → ingestTelemetry → increaseAuthority → tickTime
+assurance-verification-report.txt
 ```
 
-**Structural negative paths** (impossible by construction)
-- authority expansion beyond 10 000
-- failed state cannot increase authority
-- duplicate actionId rejected
+Example contents:
+
+```
+Assurance Kernel Verification Report
+====================================
+Repository: perseverancesworld-web/assurance-kernel
+Verification: PASS
+Lean: 4.14.0
+Mathlib: Pinned dependency
+Build: SUCCESS
+Sorry declarations: 0
+Kernel modules: PASS
+Executable tests: PASS
+Digest backend: TestDigest
+Certified transition checks: PASS
+Timestamp: <CI timestamp>
+```
+
+The report is generated only after a successful build and a zero-sorry check. It is evidence, not decoration.
 
 ## Design Principle
 
@@ -47,22 +62,19 @@ Digest Interface (typeclass)
 Concrete Digest Adapter (TestDigest today, SHA-256/BLAKE3 tomorrow)
 ```
 
-Swapping the digest implementation must never require changes to the transition algebra or its proofs.
-
 ## Building & CI
 
 ```bash
 lake build
 ```
 
-CI fails on any remaining `sorry`.
+CI fails on any remaining `sorry` and publishes the verification report as a workflow artifact.
 
 ## Roadmap remaining
 
-1. ✅ Expanded executable harness (multi-step + negatives)
-2. Optional production adapters (SHA-256 / BLAKE3)
-3. Further executable negative tests once more dynamic failure modes are modelled
-4. Machine-readable verification report artifact in CI
+1. ✅ CI verification report artifact
+2. Dynamic rejection tests (v25.7.7)
+3. Optional production adapters (SHA-256 / BLAKE3)
 
 ## License
 
