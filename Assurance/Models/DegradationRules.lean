@@ -2,7 +2,13 @@ import Mathlib.Data.Int.Basic
 import Mathlib.Data.List.Basic
 import Mathlib.Data.Finset.Basic
 
--- Abstract Cryptographic Digest Typeclass Boundary with Concrete Serialization
+/-!
+  # Certified Transition Algebra Kernel (v25.7.3)
+
+  Structural authority bounds, cryptographic evidence lineage,
+  proof-carrying transitions, and graceful degradation.
+-/
+
 class CryptographicDigest (Digest : Type) where
   eq_dec : DecidableEq Digest
   zero : Digest
@@ -11,9 +17,8 @@ class CryptographicDigest (Digest : Type) where
 
 variable {Digest : Type} [CryptographicDigest Digest]
 
--- Concrete Big-Endian Nat Serialization (simple fixed-width style for determinism)
+/-- Deterministic 8-byte big-endian encoding of Nat (sufficient for timestamps). -/
 def encodeNatBE (n : Nat) : ByteArray :=
-  -- Minimal deterministic encoding: 8-byte big-endian (sufficient for timestamps in this model)
   let b0 := UInt8.ofNat ((n >>> 56) &&& 0xff)
   let b1 := UInt8.ofNat ((n >>> 48) &&& 0xff)
   let b2 := UInt8.ofNat ((n >>> 40) &&& 0xff)
@@ -86,10 +91,8 @@ inductive ReceiptChain : Option Digest → List (SignedEvidenceReceipt Digest) �
     r.verificationProof.verifier_active = true →
     ReceiptChain (some r.measurementHash) (r :: xs)
 
-/-- Extract the head timestamp inequality that is already present
-    in a non-empty ReceiptChain constructed by `extend`. -/
+/-- Extract the head timestamp inequality already present in a non-empty ReceiptChain. -/
 lemma ReceiptChain.head_timestamp_ge
-    {prevHash : Option Digest}
     {xs : List (SignedEvidenceReceipt Digest)}
     {r : SignedEvidenceReceipt Digest}
     (h : ReceiptChain (some r.measurementHash) (r :: xs)) :
@@ -101,8 +104,10 @@ lemma ReceiptChain.head_timestamp_ge
     cases xs with
     | nil => exact True.intro
     | cons last rest =>
-        simp at hMatch
-        exact hMatch.2.2
+      -- After inversion the match hypothesis contains the three conjuncts
+      have hMatch' := hMatch
+      simp at hMatch'
+      exact hMatch'.2.2
 
 structure OverrideCertificate (Digest : Type) [CryptographicDigest Digest] where
   id : Nat
@@ -133,6 +138,17 @@ structure SystemState (Digest : Type) [CryptographicDigest Digest] where
   evidenceScore : Nat
   continuityScore : Nat
   lastEvidenceHash : Option Digest
+
+/-- Canonical (simplified) serialization of the fields that participate in state commitment.
+    Full structural serialization is future work; this is deterministic and sufficient for chaining. -/
+def serializeSystemState (s : SystemState Digest) : ByteArray :=
+  encodeNatBE s.authority.val ++
+  encodeNatBE s.currentTime ++
+  encodeNatBE s.evidenceScore ++
+  encodeNatBE s.continuityScore ++
+  (match s.lastEvidenceHash with
+   | none => ByteArray.empty
+   | some h => CryptographicDigest.toBytes h)
 
 structure EmergencyAuthorityProof (s : SystemState Digest)
     (c : OverrideCertificate Digest) (delta : Nat) (currentTime : Nat) where
@@ -250,10 +266,11 @@ def executeCertifiedTransition
         evidenceScore := eScore
         continuityScore := cScore
         lastEvidenceHash := some receipt.measurementHash }
+      let newStateHash := CryptographicDigest.hashBytes (serializeSystemState nextS)
       let commitment : StateTransitionCommitment Digest := {
         previousRoot := ledger.stateHashRoot
         actionHash := actionId
-        stateHash := ledger.stateHashRoot
+        stateHash := newStateHash
         timestamp := cs.state.currentTime }
       let newRoot := computeRootTransition commitment
       let record : LedgerRecord Digest := {
@@ -274,8 +291,7 @@ def executeCertifiedTransition
         invariant := {
           authoritySafe := nextS.authority.isLt
           lineageValid := chainProof
-          failedCannotExpand := fun hfail => by
-            exact cs.invariant.failedCannotExpand hfail
+          failedCannotExpand := fun hfail => cs.invariant.failedCannotExpand hfail
           temporalConsistency := monoProof } }
       let cert : CertifiedTransition cs a nextState nextLedger := {
         timestampValid := by omega
@@ -285,10 +301,11 @@ def executeCertifiedTransition
 
   | .graduateRecovery actionId target _ _ chainProof =>
       let nextS := { cs.state with assurance := target }
+      let newStateHash := CryptographicDigest.hashBytes (serializeSystemState nextS)
       let commitment : StateTransitionCommitment Digest := {
         previousRoot := ledger.stateHashRoot
         actionHash := actionId
-        stateHash := ledger.stateHashRoot
+        stateHash := newStateHash
         timestamp := cs.state.currentTime }
       let newRoot := computeRootTransition commitment
       let record : LedgerRecord Digest := {
@@ -313,10 +330,11 @@ def executeCertifiedTransition
   | .increaseAuthority actionId _ _ delta _ h_delta =>
       let newAuthorityVal : Fin 10001 := ⟨cs.state.authority.val + delta, h_delta⟩
       let nextS := { cs.state with authority := newAuthorityVal }
+      let newStateHash := CryptographicDigest.hashBytes (serializeSystemState nextS)
       let commitment : StateTransitionCommitment Digest := {
         previousRoot := ledger.stateHashRoot
         actionHash := actionId
-        stateHash := ledger.stateHashRoot
+        stateHash := newStateHash
         timestamp := cs.state.currentTime }
       let newRoot := computeRootTransition commitment
       let record : LedgerRecord Digest := {
@@ -340,10 +358,11 @@ def executeCertifiedTransition
 
   | .tickTime actionId =>
       let nextS := { cs.state with currentTime := cs.state.currentTime + 1 }
+      let newStateHash := CryptographicDigest.hashBytes (serializeSystemState nextS)
       let commitment : StateTransitionCommitment Digest := {
         previousRoot := ledger.stateHashRoot
         actionHash := actionId
-        stateHash := ledger.stateHashRoot
+        stateHash := newStateHash
         timestamp := cs.state.currentTime }
       let newRoot := computeRootTransition commitment
       let record : LedgerRecord Digest := {
