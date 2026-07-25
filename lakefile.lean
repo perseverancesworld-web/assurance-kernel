@@ -20,5 +20,6 @@ lean_lib Assurance where
     `Assurance.Proofs.ReceiptChain,
     `Assurance.Execution.Transition,
     `Assurance.Tests.Regression,
-    `Assurance.Tests.Smoke
+    `Assurance.Tests.Smoke,
+    `Assurance.Tests.Rejection
   ]

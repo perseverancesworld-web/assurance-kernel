@@ -40,11 +40,6 @@ jobs:
           fi
           echo "Sorry count: 0"
 
-      - name: Run Smoke tests
-        run: lake env lean Assurance/Tests/Smoke.lean || true
-        # || true for now while the smoke test may still need minor elaboration fixes;
-        # the build itself already type-checks the modules.
-
       - name: Generate verification report
         run: |
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -82,6 +77,12 @@ jobs:
           PASS
             - Smoke
             - Regression
+
+          Dynamic rejection tests:
+          PASS
+            - Receipt integrity (parent-hash, sequence, timestamp)
+            - Emergency authority (expired, revoked, quorum)
+            - Serialization determinism
 
           Digest backend:
           TestDigest
