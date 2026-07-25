@@ -4,35 +4,51 @@ Formally verified Lean 4 **Certified Transition Algebra** and Assurance Control 
 
 Proof-carrying state transitions, cryptographic evidence lineage, authority bounds, and graceful degradation under assumption failure (v25.7+).
 
-## Core Ideas
+## Repository Layout
 
-- **Structural exclusion** of illegal states via `Fin 10001` and `RecoverableState`
-- **Dependent actions** that carry their own evidence (`ValidAction`)
-- **ReceiptChain** with cryptographic adjacency + temporal ordering
-- **CertifiedTransition** as a first-class mathematical object
-- **KernelInvariant** bundle: authority safety, lineage, failure-sink protection, temporal monotonicity
-- Fail-closed Assurance Control Plane philosophy (THM-GOV-001 style)
+```
+assurance-kernel/
+├── lakefile.lean
+├── lean-toolchain
+├── .github/workflows/lean.yml
+├── Assurance/
+│   ├── Models/          # Core state, actions, invariants, transition algebra
+│   ├── Crypto/          # Digest interface & concrete instances
+│   ├── Ledger/          # Certified ledger & uniqueness
+│   ├── Proofs/          # ReceiptChain inversion & transport lemmas
+│   ├── Execution/       # Higher-level transition composition
+│   └── Tests/           # Regression proofs & executable tests
+└── README.md
+```
 
-## Current Status (v25.7.2 / v25.7.3 scaffolding)
+## Current Status
 
-| Area                      | Status          |
-|---------------------------|-----------------|
-| Type safety               | Excellent       |
-| Transition algebra        | Excellent       |
-| Ledger consistency        | Excellent       |
-| Authority model           | Excellent       |
-| Receipt lineage           | Inversion lemma |
-| Cryptographic commitments | Serializer WIP  |
-| Concrete execution        | Digest instance needed |
-| Formal completeness       | ~95-97%         |
+| Area                      | Status                    |
+|---------------------------|---------------------------|
+| Type safety               | Excellent                 |
+| Transition algebra        | Excellent                 |
+| Ledger consistency        | Excellent                 |
+| Authority model           | Excellent                 |
+| Receipt lineage           | Inversion lemma present   |
+| Cryptographic commitments | Serializer still partial  |
+| Concrete execution        | Digest instance needed    |
+| Formal completeness       | ~95-97%                   |
 
-## Path Forward
+## Roadmap
 
-1. Complete `ReceiptChain.head_timestamp_ge` (done in scaffolding)
-2. Canonical serialization for `SystemState`
-3. Real `stateHash` from serialized state
+1. ✅ Repository bootstrap (lakefile, toolchain, CI, modular layout)
+2. Complete / strengthen `ReceiptChain.head_timestamp_ge`
+3. Canonical serialization for `SystemState` → genuine `stateHash`
 4. Concrete `CryptographicDigest` instance
-5. Executable regression tests
+5. Full regression suite (duplicate rejection, authority bounds, monotonicity, lineage, failed-state lock, deterministic roots)
+
+## Building
+
+```bash
+lake build
+```
+
+CI runs `lake build` and fails on any remaining `sorry` on every push to `main`.
 
 ## License
 

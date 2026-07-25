@@ -1,0 +1,25 @@
+# Lean / Lake
+/.lake
+/build
+/lake-packages
+*.olean
+*.ilean
+*.c
+*.o
+*.a
+*.so
+*.dylib
+*.exe
+
+# Editor / OS
+.DS_Store
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.code-workspace
+
+# Local secrets / overrides
+.env
+*.local

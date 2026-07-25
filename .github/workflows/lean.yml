@@ -1,0 +1,40 @@
+name: Lean Build & Proofs
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Elan
+        run: |
+          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> $GITHUB_PATH
+
+      - name: Cache Lake packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.elan
+            .lake
+            lake-packages
+          key: ${{ runner.os }}-lake-${{ hashFiles('lean-toolchain', 'lakefile.lean', 'lake-manifest.json') }}
+          restore-keys: |
+            ${{ runner.os }}-lake-
+
+      - name: Build
+        run: lake build
+
+      - name: Check proofs (no sorry)
+        run: |
+          # Fail the job if any remaining 'sorry' appears in the library
+          if grep -r "sorry" --include="*.lean" Assurance/ ; then
+            echo "ERROR: 'sorry' found in source"
+            exit 1
+          fi
