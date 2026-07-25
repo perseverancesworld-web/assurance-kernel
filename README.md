@@ -2,30 +2,9 @@
 
 Formally verified Lean 4 **Certified Transition Algebra** and Assurance Control Plane.
 
-Proof-carrying state transitions, cryptographic evidence lineage, authority bounds, and graceful degradation under assumption failure (v25.7.4).
+Proof-carrying state transitions, cryptographic evidence lineage, authority bounds, and graceful degradation under assumption failure (v25.7.5).
 
-## Repository Layout
-
-```
-assurance-kernel/
-├── lakefile.lean
-├── lean-toolchain
-├── .github/workflows/lean.yml
-├── Assurance/
-│   ├── Models/          # Core state, actions, invariants, transition algebra
-│   ├── Crypto/
-│   │   ├── Digest.lean       # abstract typeclass
-│   │   └── TestDigest.lean   # pure-Lean deterministic instance
-│   ├── Ledger/
-│   ├── Proofs/
-│   ├── Execution/
-│   └── Tests/
-│       ├── Regression.lean
-│       └── Smoke.lean         # executable end-to-end test
-└── README.md
-```
-
-## Status (v25.7.4)
+## Status (v25.7.5)
 
 | Area                          | Status                          |
 |-------------------------------|---------------------------------|
@@ -36,20 +15,25 @@ assurance-kernel/
 | Receipt lineage               | Complete                        |
 | State commitment              | Canonical + genuine stateHash   |
 | Concrete digest               | Pure-Lean TestDigest            |
-| Executable smoke test         | Present                         |
+| Executable multi-step tests   | Present                         |
+| Structural negative checks    | Present                         |
 | Regression theorems           | Present                         |
 | CI rejecting `sorry`          | Present                         |
 | Formal completeness           | ~98%                            |
 
-## Building & CI
+## Executable Harness
 
-```bash
-lake build
+`Assurance/Tests/Smoke.lean` now exercises:
+
+**Positive multi-step sequence**
+```
+genesis → tickTime → ingestTelemetry → increaseAuthority → tickTime
 ```
 
-CI runs on every push to `main` and fails if any `sorry` remains.
-
-The smoke test (`Assurance/Tests/Smoke.lean`) exercises a full genesis → ingestTelemetry path using the pure-Lean digest.
+**Structural negative paths** (impossible by construction)
+- authority expansion beyond 10 000
+- failed state cannot increase authority
+- duplicate actionId rejected
 
 ## Design Principle
 
@@ -61,19 +45,24 @@ Digest Interface (typeclass)
       │
       ▼
 Concrete Digest Adapter (TestDigest today, SHA-256/BLAKE3 tomorrow)
-      │
-      ▼
-Runtime / Applications
 ```
 
 Swapping the digest implementation must never require changes to the transition algebra or its proofs.
 
+## Building & CI
+
+```bash
+lake build
+```
+
+CI fails on any remaining `sorry`.
+
 ## Roadmap remaining
 
-1. ✅ Pure-Lean TestDigest + smoke test
+1. ✅ Expanded executable harness (multi-step + negatives)
 2. Optional production adapters (SHA-256 / BLAKE3)
-3. Expanded executable regression suite
-4. Performance / interoperability tests against external implementations
+3. Further executable negative tests once more dynamic failure modes are modelled
+4. Machine-readable verification report artifact in CI
 
 ## License
 
