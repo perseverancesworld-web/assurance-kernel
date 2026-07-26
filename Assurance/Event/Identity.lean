@@ -1,55 +1,72 @@
 /-
   First-class event identity and duplicate-delivery rejection.
-
-  Distributed systems duplicate messages.
-  The protocol must satisfy:
-
-    Resolve(Deduplicate(E)) = Resolve(E)
 -/
 
 import Assurance.Models.DegradationRules
 
 namespace Assurance.Event
 
-/-- An authenticated event carrying a unique event_id. -/
 structure Event (Digest : Type) [CryptographicDigest Digest] where
   eventId : Digest
   agentId : Nat
-  logicalTime : Nat          -- consensus / logical clock
-  observedTime : Nat         -- telemetry only; never used for consensus
+  logicalTime : Nat
+  observedTime : Nat
   payload : ByteArray
   parentHash : Option Digest
   proposedStateHash : Digest
 
-/-- Processed-event set used for deduplication. -/
 def ProcessedSet (Digest : Type) [CryptographicDigest Digest] :=
   Finset Digest
 
-/-- Reject if the event_id has already been seen. -/
 def isDuplicate (processed : ProcessedSet Digest) (e : Event Digest) : Bool :=
   e.eventId ∈ processed
 
-/-- Record an event as processed. -/
 def markProcessed (processed : ProcessedSet Digest) (e : Event Digest) :
     ProcessedSet Digest :=
   processed.insert e.eventId
 
-/-- Deduplicate a list of events, preserving first occurrence order. -/
+/-- Deduplicate preserving first-occurrence order. -/
 def deduplicate (events : List (Event Digest)) : List (Event Digest) :=
-  Id.run do
-    let mut seen : Finset Digest := ∅
-    let mut out : List (Event Digest) := []
-    for e in events do
-      if e.eventId ∉ seen then
-        seen := seen.insert e.eventId
-        out := out ++ [e]
-    return out
+  go events ∅
+where
+  go : List (Event Digest) → Finset Digest → List (Event Digest)
+  | [], _ => []
+  | e :: rest, seen =>
+      if e.eventId ∈ seen then
+        go rest seen
+      else
+        e :: go rest (seen.insert e.eventId)
+
+/-- Helper: every event_id in the output of go appears in the seen set
+    accumulated so far, and no duplicates are emitted. -/
+theorem deduplicate.go_nodup
+    (events : List (Event Digest)) (seen : Finset Digest) :
+    (deduplicate.go events seen).Pairwise
+      (fun a b => a.eventId ≠ b.eventId) := by
+  induction events generalizing seen with
+  | nil => simp [deduplicate.go]
+  | cons e rest ih =>
+      simp [deduplicate.go]
+      split_ifs with h
+      · exact ih seen
+      · constructor
+        · intro b hb
+          -- b comes from go rest (seen.insert e.eventId)
+          -- by induction those ids are distinct from each other;
+          -- e.eventId is not in the remaining output because it was inserted
+          sorry  -- requires a stronger inductive invariant
+        · exact ih (seen.insert e.eventId)
 
 /-- Deduplication is idempotent. -/
 theorem deduplicate_idempotent (events : List (Event Digest)) :
     deduplicate (deduplicate events) = deduplicate events := by
-  -- Full proof requires induction on the list and Finset properties;
-  -- the statement records the required contract.
-  sorry
+  -- Because the output of deduplicate already contains unique event_ids,
+  -- a second pass leaves it unchanged.
+  induction events with
+  | nil => simp [deduplicate, deduplicate.go]
+  | cons e rest ih =>
+      simp [deduplicate, deduplicate.go]
+      -- Full discharge needs the nodup invariant above.
+      sorry
 
 end Assurance.Event

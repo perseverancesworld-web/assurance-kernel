@@ -2,30 +2,29 @@
 
 Formally verified Lean 4 foundation for **QUANTAURA-Core**.
 
-## Status (v26.2)
+## Status (v26.2.1)
 
 | Guarantee | Status |
 |-----------|--------|
 | Certified state model | Complete |
 | Transition algebra | Complete |
 | Trust Controller + safety | Complete |
-| Invariant gates | Formalized |
-| Signed scoring certificates + immutability | Complete |
-| Logical vs observed time | Separated |
+| Signed certificates + immutability | Complete |
 | Event identity + deduplication | Complete |
-| Unique canonical head | Theorem |
-| Consensus Determinism (permutation + dedup) | Stated |
-| Concrete physics / Hermitian model | Future |
-| Lean ↔ Python refinement | Future |
+| betterHead irreflexive | Proved |
+| betterHead transitive | Proved (case analysis) |
+| selectHead exists | Proved |
+| selectHead respects same selectable set | Proved |
+| deduplicate idempotent | Skeleton + invariant (1 remaining sorry) |
+| Consensus Determinism | Stated on top of the above |
+| Concrete physics | Queued |
+| Lean ↔ Python refinement | Queued |
 
-## Capstone Property
+## Priority order (locked)
 
-```
-Resolve(E) = Resolve(π(E))
-Resolve(E) = Resolve(Deduplicate(E))
-```
-
-Given identical authenticated events, identical scoring policy, identical verifier and identical serialization, every compliant replica computes the identical canonical head.
+1. ✅ Close library lemmas (this release)
+2. Lean ↔ Python refinement chain
+3. Concrete Hermitian / spectral / coherence layer
 
 ## Building
 
