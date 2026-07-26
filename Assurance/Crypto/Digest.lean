@@ -1,7 +1,3 @@
-/-
-  Single source of truth for the cryptographic digest interface.
--/
-
 namespace Assurance.Crypto
 
 class CryptographicDigest (Digest : Type) where
@@ -12,7 +8,6 @@ class CryptographicDigest (Digest : Type) where
 
 export CryptographicDigest (zero toBytes hashBytes)
 
-/-- Deterministic lexicographic comparison of byte arrays (no LT instance required). -/
 def bytesLt (a b : ByteArray) : Bool :=
   go 0
 where
@@ -24,8 +19,8 @@ where
         if x < y then true
         else if y < x then false
         else go (i + 1)
-      else false  -- a is longer prefix of equal bytes → a > b
+      else false
     else
-      i < b.size  -- a is proper prefix of b → a < b
+      decide (i < b.size)
 
 end Assurance.Crypto

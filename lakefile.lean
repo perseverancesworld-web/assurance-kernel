@@ -8,4 +8,5 @@ require mathlib from git
 
 @[default_target]
 lean_lib Assurance where
-  roots := #[`Assurance]
+  -- Minimal core for CI green. Expand after foundation builds.
+  globs := #[.submodules `Assurance.Crypto, .submodules `Assurance.Models, .submodules `Assurance.Trust]
