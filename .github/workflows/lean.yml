@@ -10,26 +10,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Elan
+      - name: Install Elan + toolchain
         run: |
-          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y
+          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y --default-toolchain leanprover/lean4:v4.12.0
           echo "$HOME/.elan/bin" >> $GITHUB_PATH
 
-      - name: Debug environment
+      - name: Verify toolchain
         run: |
-          echo "=== PATH ==="
-          echo "$PATH"
-          echo "=== toolchain file ==="
-          cat lean-toolchain
-          echo "=== elan ==="
-          which elan && elan --version
-          echo "=== lean ==="
-          which lean && lean --version
-          echo "=== lake ==="
-          which lake && lake --version
+          source "$HOME/.elan/env" || true
+          export PATH="$HOME/.elan/bin:$PATH"
+          echo "PATH=$PATH"
+          elan show
+          lean --version
+          lake --version
 
       - name: Lake build
         run: |
+          export PATH="$HOME/.elan/bin:$PATH"
           set -o pipefail
           lake build 2>&1 | tee build.log
 
@@ -40,12 +37,3 @@ jobs:
           name: build-log
           path: build.log
           retention-days: 14
-
-      - name: Upload always-debug
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-env
-          path: build.log
-          if-no-files-found: ignore
-          retention-days: 7
