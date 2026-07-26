@@ -2,18 +2,20 @@ import Assurance.Crypto.Digest
 
 namespace Assurance.Crypto
 
-def TestDigest := Nat
+/-- Reducible alias so Nat instances (OfNat, HMod, …) apply. -/
+abbrev TestDigest := Nat
 
 namespace TestDigest
 
-def zero : TestDigest := 0
+def zero : TestDigest := (0 : Nat)
 
 def toBytes (d : TestDigest) : ByteArray :=
+  let n : Nat := d
   ByteArray.mk #[
-    UInt8.ofNat (d % 256),
-    UInt8.ofNat ((d / 256) % 256),
-    UInt8.ofNat ((d / 65536) % 256),
-    UInt8.ofNat ((d / 16777216) % 256)
+    UInt8.ofNat (n % 256),
+    UInt8.ofNat ((n / 256) % 256),
+    UInt8.ofNat ((n / 65536) % 256),
+    UInt8.ofNat ((n / 16777216) % 256)
   ]
 
 def hashBytes (ba : ByteArray) : TestDigest :=
