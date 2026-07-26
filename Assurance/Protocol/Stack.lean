@@ -9,7 +9,7 @@ open Assurance.Crypto
 
 namespace Assurance.Protocol
 
-structure AgentIntent (Digest : Type) [DecidableEq Digest] where
+structure AgentIntent (Digest : Type) where
   event : Assurance.Event.Event Digest
   coherence : Nat
   verification : Nat
@@ -28,7 +28,8 @@ def processIntent
     (verdict : Assurance.Invariants.InvariantVerdict) :
     StackResult Digest × List Digest :=
   let e := intent.event
-  if Assurance.Event.isDuplicate seen e then
+  let eq := fun a b : Digest => decide (a = b)
+  if Assurance.Event.isDuplicate eq seen e then
     (.duplicate, seen)
   else if !(Assurance.Trust.mayPropose trust) then
     (.rejected "not authorized", seen)
