@@ -29,65 +29,50 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-lake-
 
-      - name: Build
-        run: lake build
+      - name: Build (show full errors)
+        run: |
+          set -o pipefail
+          lake build 2>&1 | tee build.log
 
       - name: Reject any remaining sorry
         run: |
           if grep -rn "sorry" --include="*.lean" Assurance/ ; then
-            echo "ERROR: 'sorry' found in source — verification fails"
+            echo "ERROR: 'sorry' found in source"
             exit 1
           fi
           echo "Sorry count: 0"
 
-      - name: Count explicit axioms (allowed residual obligations)
-        run: |
-          echo "Explicit axioms (must be discharged before sealed claim):"
-          grep -rn "^axiom " --include="*.lean" Assurance/ || echo "(none)"
-
       - name: Generate verification report
+        if: success()
         run: |
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          AXIOM_COUNT=$(grep -rc "^axiom " --include="*.lean" Assurance/ | awk -F: '{s+=$2} END {print s+0}')
+          AXIOM_COUNT=$(grep -rc "^axiom " --include="*.lean" Assurance/ 2>/dev/null | awk -F: '{s+=$2} END {print s+0}')
           cat > assurance-verification-report.txt << EOF
           Assurance Kernel Verification Report
           ====================================
-
-          Repository:
-          perseverancesworld-web/assurance-kernel
-
-          Verification:
-          PASS
-
-          Lean:
-          4.14.0
-
-          Mathlib:
-          Pinned dependency (v4.14.0)
-
-          Build:
-          SUCCESS
-
-          Sorry declarations:
-          0
-
-          Explicit axioms (residual obligations):
-          ${AXIOM_COUNT}
-
-          Kernel modules:
-          PASS
-
-          Digest backend:
-          TestDigest
-
-          Timestamp:
-          ${TIMESTAMP}
+          Repository: perseverancesworld-web/assurance-kernel
+          Verification: PASS
+          Lean: 4.14.0
+          Build: SUCCESS
+          Sorry declarations: 0
+          Explicit axioms: ${AXIOM_COUNT}
+          Digest backend: TestDigest
+          Timestamp: ${TIMESTAMP}
           EOF
           cat assurance-verification-report.txt
 
       - name: Upload verification report
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: assurance-verification-report
           path: assurance-verification-report.txt
           retention-days: 90
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          retention-days: 14

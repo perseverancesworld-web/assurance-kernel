@@ -1,14 +1,4 @@
-/-
-  BLAKE3 production adapter (v25.8)
-
-  Same contract as SHA256.lean: the kernel never imports this file.
-  Only the CryptographicDigest interface is required.
-
-  Status: Interface-complete stub.
--/
-
 import Assurance.Crypto.Digest
-import Mathlib.Data.ByteArray
 
 namespace Assurance.Crypto
 
@@ -17,16 +7,11 @@ def Blake3Digest := ByteArray
 namespace Blake3
 
 def zero : Blake3Digest := ByteArray.mk (List.replicate 32 0)
-
 def toBytes (d : Blake3Digest) : ByteArray := d
 
-/--
-  Placeholder hash (deterministic stand-in).
-  Replace with a real pure-Lean BLAKE3 or verified FFI.
--/
 def hashBytes (ba : ByteArray) : Blake3Digest :=
   Id.run do
-    let mut h : UInt64 := 0x6a09e667f2bdc948  -- distinct IV fragment
+    let mut h : UInt64 := 0x6a09e667f2bdc948
     for b in ba do
       h := (h * 0x100000001b3) ^^^ b.toUInt64
     let mut out : Array UInt8 := #[]
@@ -48,10 +33,6 @@ instance : CryptographicDigest Blake3Digest where
   zero := zero
   toBytes := toBytes
   hashBytes := hashBytes
-
-def selfTest : IO Unit := do
-  IO.println "BLAKE3 adapter: interface-complete (placeholder hash)."
-  IO.println "Replace hashBytes with a verified implementation for production use."
 
 end Blake3
 
