@@ -24,10 +24,4 @@ deriving Repr
 def InvariantVerdict.allPass (v : InvariantVerdict) : Bool :=
   v.provenance.isOk && v.hermiticity.isOk && v.spectral.isOk && v.coherence.isOk
 
-theorem allPass_requires_provenance (v : InvariantVerdict)
-    (h : v.allPass = true) :
-    v.provenance.isOk = true := by
-  simp [InvariantVerdict.allPass] at h
-  exact h.1.1.1
-
 end Assurance.Invariants

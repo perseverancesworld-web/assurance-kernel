@@ -1,8 +1,11 @@
+import Assurance.Crypto.Digest
 import Assurance.Trust.Controller
 import Assurance.Invariants.Gates
 import Assurance.Event.Identity
 import Assurance.DAG.Node
 import Assurance.Certificate.Scoring
+
+open Assurance.Crypto
 
 namespace Assurance.Protocol
 
@@ -11,13 +14,13 @@ structure AgentIntent (Digest : Type) [DecidableEq Digest] where
   coherence : Nat
   verification : Nat
 
-inductive StackResult (Digest : Type) [DecidableEq Digest] [Assurance.Crypto.CryptographicDigest Digest] where
+inductive StackResult (Digest : Type) [DecidableEq Digest] [CryptographicDigest Digest] where
   | accepted (node : Assurance.DAG.CertifiedNode Digest)
   | rejected (reason : String)
   | duplicate
 
 def processIntent
-    {Digest : Type} [DecidableEq Digest] [Assurance.Crypto.CryptographicDigest Digest]
+    {Digest : Type} [DecidableEq Digest] [CryptographicDigest Digest]
     (intent : AgentIntent Digest)
     (trust : Assurance.Trust.TrustState)
     (seen : List Digest)
@@ -27,9 +30,9 @@ def processIntent
   let e := intent.event
   if Assurance.Event.isDuplicate seen e then
     (.duplicate, seen)
-  else if !Assurance.Trust.mayPropose trust then
+  else if !(Assurance.Trust.mayPropose trust) then
     (.rejected "not authorized", seen)
-  else if !verdict.allPass then
+  else if !(verdict.allPass) then
     (.rejected "invariant failure", Assurance.Event.markProcessed seen e)
   else
     let node : Assurance.DAG.CertifiedNode Digest := {

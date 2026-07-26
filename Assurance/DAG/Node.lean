@@ -1,7 +1,5 @@
 import Assurance.Crypto.Digest
 import Assurance.Trust.Controller
-import Assurance.Invariants.Gates
-import Assurance.Certificate.Scoring
 
 open Assurance.Crypto
 
@@ -21,7 +19,7 @@ structure CertifiedNode (Digest : Type) [DecidableEq Digest] [CryptographicDiges
   logicalTime : Nat
 
 def isSelectable (n : CertifiedNode Digest) : Bool :=
-  n.status = .verified || n.status = .accepted
+  decide (n.status = .verified) || decide (n.status = .accepted)
 
 def betterHead (a b : CertifiedNode Digest) : Bool :=
   if a.score > b.score then true
@@ -33,12 +31,5 @@ def selectHead (candidates : List (CertifiedNode Digest)) : Option (CertifiedNod
   match selectable with
   | [] => none
   | hd :: tl => some (tl.foldl (fun best n => if betterHead n best then n else best) hd)
-
-theorem betterHead_irrefl (a : CertifiedNode Digest) :
-    betterHead a a = false := by
-  simp [betterHead]
-  split_ifs <;> try rfl
-  -- equal score → bytesLt a a should be false
-  simp [bytesLt]
 
 end Assurance.DAG

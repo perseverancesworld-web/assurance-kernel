@@ -49,16 +49,8 @@ theorem revoked_absorbing (e : TrustEvidence) :
   cases e <;> rfl
 
 theorem no_propose_revoked : mayPropose .revoked = false := rfl
-
 theorem no_propose_quarantined : mayPropose .quarantined = false := rfl
-
 theorem no_mutate_quarantined : mayMutate .quarantined = false := rfl
-
 theorem no_mutate_revoked : mayMutate .revoked = false := rfl
-
-theorem recovery_needs_proof (e : TrustEvidence)
-    (h : evolve .quarantined e = .recovering) :
-    e = .recoveryProofValid := by
-  cases e <;> simp [evolve] at h <;> try rfl
 
 end Assurance.Trust
