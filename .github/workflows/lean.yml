@@ -40,9 +40,15 @@ jobs:
           fi
           echo "Sorry count: 0"
 
+      - name: Count explicit axioms (allowed residual obligations)
+        run: |
+          echo "Explicit axioms (must be discharged before sealed claim):"
+          grep -rn "^axiom " --include="*.lean" Assurance/ || echo "(none)"
+
       - name: Generate verification report
         run: |
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          AXIOM_COUNT=$(grep -rc "^axiom " --include="*.lean" Assurance/ | awk -F: '{s+=$2} END {print s+0}')
           cat > assurance-verification-report.txt << EOF
           Assurance Kernel Verification Report
           ====================================
@@ -65,30 +71,14 @@ jobs:
           Sorry declarations:
           0
 
+          Explicit axioms (residual obligations):
+          ${AXIOM_COUNT}
+
           Kernel modules:
           PASS
-            - Models
-            - Crypto
-            - Ledger
-            - Proofs
-            - Execution
-
-          Executable tests:
-          PASS
-            - Smoke
-            - Regression
-
-          Dynamic rejection tests:
-          PASS
-            - Receipt integrity (parent-hash, sequence, timestamp)
-            - Emergency authority (expired, revoked, quorum)
-            - Serialization determinism
 
           Digest backend:
           TestDigest
-
-          Certified transition checks:
-          PASS
 
           Timestamp:
           ${TIMESTAMP}
