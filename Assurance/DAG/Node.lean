@@ -1,22 +1,15 @@
-/-
-  Certified DAG node lifecycle and deterministic head selection.
-  Updated (v26.1) to bind signed certificates and logical time.
--/
-
 import Assurance.Models.DegradationRules
 import Assurance.Invariants.Gates
 import Assurance.Trust.Controller
 import Assurance.Certificate.Scoring
+import Assurance.Crypto.Digest
+
+open Assurance.Crypto
 
 namespace Assurance.DAG
 
 inductive NodeStatus
-  | proposed
-  | verified
-  | accepted
-  | superseded
-  | quarantined
-  | rejected
+  | proposed | verified | accepted | superseded | quarantined | rejected
 deriving DecidableEq, Repr
 
 structure CertifiedNode (Digest : Type) [CryptographicDigest Digest] where
@@ -24,27 +17,19 @@ structure CertifiedNode (Digest : Type) [CryptographicDigest Digest] where
   parentId : Option Digest
   stateHash : Digest
   certificate : Assurance.Certificate.SignedCertificate Digest
-  score : Nat                    -- derived from certificate only
+  score : Nat
   status : NodeStatus
   trustAtPlacement : Assurance.Trust.TrustState
   invariants : Assurance.Invariants.InvariantVerdict
-  logicalTime : Nat              -- consensus time (from event / certificate)
-  -- observed wall-clock is intentionally absent from the node
+  logicalTime : Nat
 
 def isSelectable (n : CertifiedNode Digest) : Bool :=
   n.status = .verified || n.status = .accepted
 
-/-- Total order for head selection.
-    Primary: higher score.
-    Secondary: lexicographic state hash.
-    Network arrival order never participates. -/
 def betterHead (a b : CertifiedNode Digest) : Bool :=
   if a.score > b.score then true
   else if a.score < b.score then false
-  else
-    let ba := CryptographicDigest.toBytes a.stateHash
-    let bb := CryptographicDigest.toBytes b.stateHash
-    ba < bb
+  else bytesLt (toBytes a.stateHash) (toBytes b.stateHash)
 
 def selectHead (candidates : List (CertifiedNode Digest)) : Option (CertifiedNode Digest) :=
   let selectable := candidates.filter isSelectable
