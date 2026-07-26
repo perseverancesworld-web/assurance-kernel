@@ -2,33 +2,32 @@ import Assurance.Crypto.Digest
 
 namespace Assurance.Crypto
 
-/-- Pure-Lean test digest: a natural number.
-    Fully decidable; suitable for CI and formal development. -/
 def TestDigest := Nat
 
 namespace TestDigest
 
 def zero : TestDigest := 0
 
-/-- Encode Nat as little-endian bytes (minimal). -/
 def toBytes (d : TestDigest) : ByteArray :=
   ByteArray.mk #[
-    UInt8.ofNat (d &&& 0xff),
-    UInt8.ofNat ((d >>> 8) &&& 0xff),
-    UInt8.ofNat ((d >>> 16) &&& 0xff),
-    UInt8.ofNat ((d >>> 24) &&& 0xff)
+    UInt8.ofNat (d % 256),
+    UInt8.ofNat ((d / 256) % 256),
+    UInt8.ofNat ((d / 65536) % 256),
+    UInt8.ofNat ((d / 16777216) % 256)
   ]
 
-/-- Deterministic mix of input bytes into a Nat. -/
+/-- Fold bytes via size-based loop (stable across Lean versions). -/
 def hashBytes (ba : ByteArray) : TestDigest :=
-  Id.run do
-    let mut h : Nat := 0xcbf29ce484222325
-    for b in ba do
-      h := (h * 0x100000001b3) ^^^ b.toNat
-    pure h
+  let rec go (i : Nat) (h : Nat) : Nat :=
+    if hlt : i < ba.size then
+      let b := (ba.get ⟨i, hlt⟩).toNat
+      go (i + 1) ((h * 31 + b) % 1000000007)
+    else
+      h
+  go 0 1
 
 instance : CryptographicDigest TestDigest where
-  eq_dec := inferInstance  -- Nat has DecidableEq
+  eq_dec := inferInstance
   zero := zero
   toBytes := toBytes
   hashBytes := hashBytes
