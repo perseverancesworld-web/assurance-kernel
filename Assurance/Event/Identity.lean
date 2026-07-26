@@ -7,18 +7,22 @@ structure Event (Digest : Type) [DecidableEq Digest] where
   observedTime : Nat
   proposedStateHash : Digest
 
-def memId (seen : List Digest) (id : Digest) : Bool :=
+def memId {Digest : Type} [DecidableEq Digest]
+    (seen : List Digest) (id : Digest) : Bool :=
   match seen with
   | [] => false
   | x :: xs => decide (x = id) || memId xs id
 
-def isDuplicate (seen : List Digest) (e : Event Digest) : Bool :=
+def isDuplicate {Digest : Type} [DecidableEq Digest]
+    (seen : List Digest) (e : Event Digest) : Bool :=
   memId seen e.eventId
 
-def markProcessed (seen : List Digest) (e : Event Digest) : List Digest :=
+def markProcessed {Digest : Type} [DecidableEq Digest]
+    (seen : List Digest) (e : Event Digest) : List Digest :=
   e.eventId :: seen
 
-def deduplicate (events : List (Event Digest)) : List (Event Digest) :=
+def deduplicate {Digest : Type} [DecidableEq Digest]
+    (events : List (Event Digest)) : List (Event Digest) :=
   go events []
 where
   go : List (Event Digest) → List Digest → List (Event Digest)
