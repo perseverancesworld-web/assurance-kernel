@@ -17,10 +17,8 @@ jobs:
 
       - name: Verify toolchain
         run: |
-          source "$HOME/.elan/env" || true
           export PATH="$HOME/.elan/bin:$PATH"
-          echo "PATH=$PATH"
-          elan show
+          elan show || true
           lean --version
           lake --version
 
@@ -29,6 +27,13 @@ jobs:
           export PATH="$HOME/.elan/bin:$PATH"
           set -o pipefail
           lake build 2>&1 | tee build.log
+          echo "EXIT CODE: $?"
+
+      - name: Show build log
+        if: failure()
+        run: |
+          echo "===== build.log ====="
+          cat build.log || echo "(no build.log)"
 
       - name: Upload build log on failure
         if: failure()
