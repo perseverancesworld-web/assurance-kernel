@@ -1,9 +1,7 @@
 import Lake
 open Lake DSL
 
-package «assurance-kernel» where
-  -- zero external deps for CI isolation
+package assurance_kernel
 
 @[default_target]
-lean_lib Assurance where
-  globs := #[.submodules `Assurance.Crypto, .submodules `Assurance.Trust]
+lean_lib Assurance

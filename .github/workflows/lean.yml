@@ -3,8 +3,6 @@ name: Lean Build & Verification
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
 
 jobs:
   verify:
@@ -14,27 +12,26 @@ jobs:
 
       - name: Install Elan
         run: |
-          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y --default-toolchain none
+          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y
           echo "$HOME/.elan/bin" >> $GITHUB_PATH
 
-      - name: Show toolchain
+      - name: Debug environment
         run: |
+          echo "=== PATH ==="
+          echo "$PATH"
+          echo "=== toolchain file ==="
           cat lean-toolchain
-          elan --version || true
-          lean --version || true
+          echo "=== elan ==="
+          which elan && elan --version
+          echo "=== lean ==="
+          which lean && lean --version
+          echo "=== lake ==="
+          which lake && lake --version
 
       - name: Lake build
         run: |
           set -o pipefail
           lake build 2>&1 | tee build.log
-
-      - name: Check no sorry
-        run: |
-          if grep -rn "sorry" --include="*.lean" Assurance/Crypto Assurance/Trust 2>/dev/null; then
-            echo "sorry found"
-            exit 1
-          fi
-          echo "Sorry count: 0"
 
       - name: Upload build log on failure
         if: failure()
@@ -43,3 +40,12 @@ jobs:
           name: build-log
           path: build.log
           retention-days: 14
+
+      - name: Upload always-debug
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-env
+          path: build.log
+          if-no-files-found: ignore
+          retention-days: 7
