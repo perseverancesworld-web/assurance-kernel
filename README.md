@@ -1,64 +1,72 @@
 # Assurance Kernel
 
-Formally verified Lean 4 **Certified Transition Algebra** and Assurance Control Plane.
+Formally verified Lean 4 foundation for **QUANTAURA-Core**:
+Certified Transition Algebra + Trust Controller + Invariant Gates +
+Certified DAG + Deterministic Head Selection.
 
-Proof-carrying state transitions, cryptographic evidence lineage, authority bounds, and graceful degradation under assumption failure (v25.8).
+## Status (v26.0)
 
-## Status (v25.8)
+| Layer                             | Status                          |
+|-----------------------------------|---------------------------------|
+| Certified state model             | Complete                        |
+| Transition algebra                | Complete                        |
+| Receipt lineage                   | Complete                        |
+| Trust Controller                  | Formalized                      |
+| Invariant gates                   | Formalized (abstract physics)   |
+| Certified DAG + head selection    | Formalized                      |
+| Permutation Invariance Contract   | Stated + partial proof          |
+| Protocol stack                    | End-to-end skeleton             |
+| Concrete digest (CI)              | TestDigest                      |
+| Production digest adapters        | SHA-256 / BLAKE3 (interface)    |
+| CI zero-sorry + verification report | Present                       |
 
-| Area                          | Status                          |
-|-------------------------------|---------------------------------|
-| Type safety                   | Excellent                       |
-| Transition algebra            | Excellent                       |
-| Ledger consistency            | Excellent                       |
-| Authority model               | Excellent                       |
-| Receipt lineage               | Complete                        |
-| State commitment              | Canonical + genuine stateHash   |
-| Concrete digest (CI)          | Pure-Lean TestDigest            |
-| Production digest adapters    | SHA-256 & BLAKE3 (interface)    |
-| Executable multi-step tests   | Present                         |
-| Structural negative checks    | Present                         |
-| Dynamic rejection tests       | Present                         |
-| Regression theorems           | Present                         |
-| CI rejecting `sorry`          | Present                         |
-| Verification report artifact  | Present                         |
-| Formal completeness           | ~98%                            |
-
-## Cryptographic Boundary (v25.8)
+## Architecture Stack (formalized)
 
 ```
-Assurance/Crypto/
-├── Digest.lean        # abstract CryptographicDigest typeclass
-├── TestDigest.lean    # pure-Lean CI / formal reference (kept)
-├── SHA256.lean        # production adapter (interface-complete)
-└── Blake3.lean        # production adapter (interface-complete)
+Agent Intent
+     ↓
+Authorization & Provenance   (Trust Controller)
+     ↓
+Canonical Serialization
+     ↓
+Invariant Verification       (Gates)
+     ↓
+Certificate Generation
+     ↓
+Certified DAG Placement
+     ↓
+Deterministic Head Selection (score + hash tie-break)
+     ↓
+Replay / Convergence
 ```
 
-**Rule:** The kernel never imports a concrete adapter.  
-Swapping TestDigest ↔ SHA-256 ↔ BLAKE3 requires zero changes to transition algebra, proofs, or tests.
+## Core Axioms (enforced)
 
-The current SHA-256 and BLAKE3 modules are deterministic placeholders that satisfy the typeclass. Replace the `hashBytes` bodies with verified implementations (pure Lean or FFI) when moving to production cryptography.
+1. **The Intelligence Does Not Own Its History** — ledger is sole authority over the past.
+2. **Capability ≠ Permission** — mathematical validity does not grant operational authority.
+3. **Time Is Not Truth** — head selection is independent of network arrival order.
 
-## Design Principle
+## Module Layout
 
 ```
-Kernel (proved)
-      │
-      ▼
-Digest Interface (typeclass)
-      │
-      ▼
-Concrete Digest Adapter
-  (TestDigest | SHA-256 | BLAKE3 | future)
+Assurance/
+├── Models/          # Core state, actions, transition algebra
+├── Crypto/          # Digest interface + adapters
+├── Ledger/
+├── Proofs/
+├── Execution/
+├── Trust/           # Trust Controller state machine
+├── Invariants/      # Provenance / Hermiticity / Spectral / Coherence gates
+├── DAG/             # Node lifecycle + head selection + permutation invariance
+├── Protocol/        # End-to-end stack
+└── Tests/
 ```
 
-## Building & CI
+## Building
 
 ```bash
 lake build
 ```
-
-CI fails on any remaining `sorry` and publishes the verification report.
 
 ## License
 
