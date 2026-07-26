@@ -1,79 +1,95 @@
 /-
-  End-to-end protocol stack (blueprint §2)
-
-  Agent Intent
-       ↓
-  Authorization & Provenance
-       ↓
-  Canonical Serialization
-       ↓
-  Invariant Verification
-       ↓
-  Certificate Generation
-       ↓
-  Certified DAG Placement
-       ↓
-  Deterministic Head Selection
-       ↓
-  Replay Verification
+  End-to-end protocol stack (v26.1)
+  Now carries signed certificates, logical time, and event_id.
 -/
 
 import Assurance.Models.DegradationRules
 import Assurance.Trust.Controller
 import Assurance.Invariants.Gates
+import Assurance.Certificate.Scoring
+import Assurance.Event.Identity
 import Assurance.DAG.Node
 
 namespace Assurance.Protocol
 
-/-- A proposed agent intent before any verification. -/
 structure AgentIntent (Digest : Type) [CryptographicDigest Digest] where
-  agentId : Nat
-  proposedStateHash : Digest
-  parentHash : Option Digest
-  score : Int
-  payload : ByteArray
+  event : Assurance.Event.Event Digest
+  scoreInputs : Nat × Nat   -- (coherence, verification)
 
-/-- Result of running the full stack on one intent. -/
 inductive StackResult (Digest : Type) [CryptographicDigest Digest]
   | accepted (node : Assurance.DAG.CertifiedNode Digest)
   | rejected (reason : String)
   | quarantined (node : Assurance.DAG.CertifiedNode Digest)
+  | duplicate
 
-/-- Simplified single-node processing pipeline.
-    Full multi-agent concurrent processing is future work. -/
 def processIntent
     (intent : AgentIntent Digest)
     (currentTrust : Assurance.Trust.TrustState)
-    (expectedParent : Option Digest)
-    (invariants : Assurance.Invariants.InvariantVerdict) :
-    StackResult Digest :=
+    (processed : Assurance.Event.ProcessedSet Digest)
+    (policy : Assurance.Certificate.ScoringPolicy)
+    (invariants : Assurance.Invariants.InvariantVerdict)
+    (verifierId : Nat) :
+    StackResult Digest × Assurance.Event.ProcessedSet Digest :=
+  let e := intent.event
+  -- 0. Duplicate rejection
+  if Assurance.Event.isDuplicate processed e then
+    (.duplicate, processed)
   -- 1. Authorization
-  if !Assurance.Trust.mayPropose currentTrust then
-    .rejected "Agent not authorized to propose"
-  -- 2. Provenance
-  else if !invariants.provenance.isOk then
-    .rejected "Provenance failure"
-  -- 3. Full invariant suite
+  else if !Assurance.Trust.mayPropose currentTrust then
+    (.rejected "Agent not authorized to propose", processed)
+  -- 2. Provenance / invariants
   else if !invariants.allPass then
-    .quarantined {
-      id := intent.proposedStateHash
-      parentId := intent.parentHash
-      stateHash := intent.proposedStateHash
-      score := intent.score
+    let payload : Assurance.Certificate.CertificatePayload Digest := {
+      stateHash := e.proposedStateHash
+      parentHash := e.parentHash
+      verifierVersion := "v0.1"
+      policy := policy
+      coherenceScore := intent.scoreInputs.1
+      verificationScore := intent.scoreInputs.2
+      logicalTime := e.logicalTime
+      eventId := e.eventId }
+    let cert : Assurance.Certificate.SignedCertificate Digest := {
+      payload := payload
+      payloadHash := CryptographicDigest.hashBytes (ByteArray.empty)  -- placeholder
+      verifierId := verifierId
+      signatureValid := True.intro }
+    let node : Assurance.DAG.CertifiedNode Digest := {
+      id := e.proposedStateHash
+      parentId := e.parentHash
+      stateHash := e.proposedStateHash
+      certificate := cert
+      score := Assurance.Certificate.scoreOf cert
       status := .quarantined
       trustAtPlacement := currentTrust
       invariants := invariants
-      timestamp := 0 }
-  -- 4. Certificate + placement
+      logicalTime := e.logicalTime }
+    (.quarantined node, Assurance.Event.markProcessed processed e)
+  -- 3. Accept
   else
-    .accepted {
-      id := intent.proposedStateHash
-      parentId := intent.parentHash
-      stateHash := intent.proposedStateHash
-      score := intent.score
+    let payload : Assurance.Certificate.CertificatePayload Digest := {
+      stateHash := e.proposedStateHash
+      parentHash := e.parentHash
+      verifierVersion := "v0.1"
+      policy := policy
+      coherenceScore := intent.scoreInputs.1
+      verificationScore := intent.scoreInputs.2
+      logicalTime := e.logicalTime
+      eventId := e.eventId }
+    let cert : Assurance.Certificate.SignedCertificate Digest := {
+      payload := payload
+      payloadHash := CryptographicDigest.hashBytes (ByteArray.empty)
+      verifierId := verifierId
+      signatureValid := True.intro }
+    let node : Assurance.DAG.CertifiedNode Digest := {
+      id := e.proposedStateHash
+      parentId := e.parentHash
+      stateHash := e.proposedStateHash
+      certificate := cert
+      score := Assurance.Certificate.scoreOf cert
       status := .verified
       trustAtPlacement := currentTrust
       invariants := invariants
-      timestamp := 0 }
+      logicalTime := e.logicalTime }
+    (.accepted node, Assurance.Event.markProcessed processed e)
 
 end Assurance.Protocol

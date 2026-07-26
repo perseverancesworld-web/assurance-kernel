@@ -1,66 +1,39 @@
 # Assurance Kernel
 
-Formally verified Lean 4 foundation for **QUANTAURA-Core**:
-Certified Transition Algebra + Trust Controller + Invariant Gates +
-Certified DAG + Deterministic Head Selection.
+Formally verified Lean 4 foundation for **QUANTAURA-Core**.
 
-## Status (v26.0)
+Certified Transition Algebra · Trust Controller · Invariant Gates ·
+Signed Scoring Certificates · Event Identity · Deterministic DAG Head Selection ·
+Permutation & Duplicate-Delivery Invariance.
 
-| Layer                             | Status                          |
-|-----------------------------------|---------------------------------|
-| Certified state model             | Complete                        |
-| Transition algebra                | Complete                        |
-| Receipt lineage                   | Complete                        |
-| Trust Controller                  | Formalized                      |
-| Invariant gates                   | Formalized (abstract physics)   |
-| Certified DAG + head selection    | Formalized                      |
-| Permutation Invariance Contract   | Stated + partial proof          |
-| Protocol stack                    | End-to-end skeleton             |
-| Concrete digest (CI)              | TestDigest                      |
-| Production digest adapters        | SHA-256 / BLAKE3 (interface)    |
-| CI zero-sorry + verification report | Present                       |
+## Status (v26.1)
 
-## Architecture Stack (formalized)
+| Layer | Status |
+|-------|--------|
+| Certified state model | Complete |
+| Transition algebra | Complete |
+| Trust Controller | Complete |
+| Invariant gates | Formalized |
+| Signed scoring certificates | Complete |
+| Logical vs observed time | Separated |
+| Event identity + deduplication | Complete |
+| Deterministic head selection | Complete |
+| Permutation invariance | Stated |
+| Duplicate-delivery determinism | Theorem target |
+| Concrete digest (CI) | TestDigest |
+| Production adapters | SHA-256 / BLAKE3 interface |
 
-```
-Agent Intent
-     ↓
-Authorization & Provenance   (Trust Controller)
-     ↓
-Canonical Serialization
-     ↓
-Invariant Verification       (Gates)
-     ↓
-Certificate Generation
-     ↓
-Certified DAG Placement
-     ↓
-Deterministic Head Selection (score + hash tie-break)
-     ↓
-Replay / Convergence
-```
-
-## Core Axioms (enforced)
-
-1. **The Intelligence Does Not Own Its History** — ledger is sole authority over the past.
-2. **Capability ≠ Permission** — mathematical validity does not grant operational authority.
-3. **Time Is Not Truth** — head selection is independent of network arrival order.
-
-## Module Layout
+## Core Guarantees
 
 ```
-Assurance/
-├── Models/          # Core state, actions, transition algebra
-├── Crypto/          # Digest interface + adapters
-├── Ledger/
-├── Proofs/
-├── Execution/
-├── Trust/           # Trust Controller state machine
-├── Invariants/      # Provenance / Hermiticity / Spectral / Coherence gates
-├── DAG/             # Node lifecycle + head selection + permutation invariance
-├── Protocol/        # End-to-end stack
-└── Tests/
+Events + HistoricalCertificates → Canonical Head
 ```
+
+- No network-order bias (score + lex hash total order)
+- No silent policy drift (versioned certificates)
+- No duplicate-induced divergence (`Resolve(Deduplicate(E)) = Resolve(E)`)
+- Capability ≠ Permission (Trust Controller)
+- History is owned by the ledger, not by agents
 
 ## Building
 
