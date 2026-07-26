@@ -1,26 +1,23 @@
-import Assurance.Models.DegradationRules
-import Assurance.Invariants.Gates
-import Assurance.Trust.Controller
-import Assurance.Certificate.Scoring
 import Assurance.Crypto.Digest
+import Assurance.Trust.Controller
+import Assurance.Invariants.Gates
+import Assurance.Certificate.Scoring
 
 open Assurance.Crypto
 
 namespace Assurance.DAG
 
-inductive NodeStatus
+inductive NodeStatus where
   | proposed | verified | accepted | superseded | quarantined | rejected
 deriving DecidableEq, Repr
 
-structure CertifiedNode (Digest : Type) [CryptographicDigest Digest] where
+structure CertifiedNode (Digest : Type) [DecidableEq Digest] [CryptographicDigest Digest] where
   id : Digest
   parentId : Option Digest
   stateHash : Digest
-  certificate : Assurance.Certificate.SignedCertificate Digest
   score : Nat
   status : NodeStatus
   trustAtPlacement : Assurance.Trust.TrustState
-  invariants : Assurance.Invariants.InvariantVerdict
   logicalTime : Nat
 
 def isSelectable (n : CertifiedNode Digest) : Bool :=
@@ -37,14 +34,11 @@ def selectHead (candidates : List (CertifiedNode Digest)) : Option (CertifiedNod
   | [] => none
   | hd :: tl => some (tl.foldl (fun best n => if betterHead n best then n else best) hd)
 
-def advanceStatus (n : CertifiedNode Digest) (event : String) : CertifiedNode Digest :=
-  match n.status, event with
-  | .proposed, "verify_ok"   => { n with status := .verified }
-  | .proposed, "verify_fail" => { n with status := .rejected }
-  | .verified, "accept"      => { n with status := .accepted }
-  | .verified, "supersede"   => { n with status := .superseded }
-  | .accepted, "supersede"   => { n with status := .superseded }
-  | _, "quarantine"          => { n with status := .quarantined }
-  | _, _                     => n
+theorem betterHead_irrefl (a : CertifiedNode Digest) :
+    betterHead a a = false := by
+  simp [betterHead]
+  split_ifs <;> try rfl
+  -- equal score → bytesLt a a should be false
+  simp [bytesLt]
 
 end Assurance.DAG
