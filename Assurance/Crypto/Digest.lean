@@ -6,6 +6,8 @@ class CryptographicDigest (Digest : Type) where
   toBytes : Digest → ByteArray
   hashBytes : ByteArray → Digest
 
+attribute [instance] CryptographicDigest.eq_dec
+
 def bytesLt (a b : ByteArray) : Bool :=
   let rec go (i : Nat) : Bool :=
     if h : i < a.size then

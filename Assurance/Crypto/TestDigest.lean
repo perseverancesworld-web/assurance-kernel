@@ -2,44 +2,36 @@ import Assurance.Crypto.Digest
 
 namespace Assurance.Crypto
 
-/-- Concrete test digest: thin wrapper so instances are explicit. -/
-structure TestDigest where
-  bytes : ByteArray
-deriving Repr
+/-- Pure-Lean test digest: a natural number.
+    Fully decidable; suitable for CI and formal development. -/
+def TestDigest := Nat
 
 namespace TestDigest
 
-def zero : TestDigest := ⟨ByteArray.empty⟩
+def zero : TestDigest := 0
 
-def toBytes (d : TestDigest) : ByteArray := d.bytes
+/-- Encode Nat as little-endian bytes (minimal). -/
+def toBytes (d : TestDigest) : ByteArray :=
+  ByteArray.mk #[
+    UInt8.ofNat (d &&& 0xff),
+    UInt8.ofNat ((d >>> 8) &&& 0xff),
+    UInt8.ofNat ((d >>> 16) &&& 0xff),
+    UInt8.ofNat ((d >>> 24) &&& 0xff)
+  ]
 
-def hashBytes (ba : ByteArray) : TestDigest := ⟨ba⟩
+/-- Deterministic mix of input bytes into a Nat. -/
+def hashBytes (ba : ByteArray) : TestDigest :=
+  Id.run do
+    let mut h : Nat := 0xcbf29ce484222325
+    for b in ba do
+      h := (h * 0x100000001b3) ^^^ b.toNat
+    pure h
 
-/-- Equality by underlying bytes. -/
-def beq (a b : TestDigest) : Bool :=
-  a.bytes == b.bytes
-
-instance : BEq TestDigest where
-  beq := beq
-
-instance : DecidableEq TestDigest :=
-  fun a b =>
-    if h : a.bytes == b.bytes then
-      isTrue (by
-        -- ByteArray equality is decidable via BEq; treat equal bytes as equal digests
-        cases a; cases b
-        simp [BEq.beq] at h
-        exact congrArg TestDigest.mk (by
-          -- In Lean 4, ByteArray has decidable equality via its BEq in practice for this purpose
-          exact Classical.choice ⟨by sorry⟩))
-    else
-      isFalse (by
-        intro heq
-        cases heq
-        contradiction)
-
--- Simpler approach: use opaque equality via axiom-free classical if needed,
--- but prefer a fully constructive path with List UInt8.
+instance : CryptographicDigest TestDigest where
+  eq_dec := inferInstance  -- Nat has DecidableEq
+  zero := zero
+  toBytes := toBytes
+  hashBytes := hashBytes
 
 end TestDigest
 
