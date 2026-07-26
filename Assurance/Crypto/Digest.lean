@@ -6,12 +6,8 @@ class CryptographicDigest (Digest : Type) where
   toBytes : Digest → ByteArray
   hashBytes : ByteArray → Digest
 
-export CryptographicDigest (zero toBytes hashBytes)
-
 def bytesLt (a b : ByteArray) : Bool :=
-  go 0
-where
-  go (i : Nat) : Bool :=
+  let rec go (i : Nat) : Bool :=
     if h : i < a.size then
       if h' : i < b.size then
         let x := a.get ⟨i, h⟩
@@ -22,5 +18,6 @@ where
       else false
     else
       decide (i < b.size)
+  go 0
 
 end Assurance.Crypto

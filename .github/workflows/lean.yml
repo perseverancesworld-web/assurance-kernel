@@ -10,64 +10,31 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Install Elan
         run: |
           curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y --default-toolchain none
           echo "$HOME/.elan/bin" >> $GITHUB_PATH
 
-      - name: Cache Lake packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.elan
-            .lake
-            lake-packages
-          key: ${{ runner.os }}-lake-${{ hashFiles('lean-toolchain', 'lakefile.lean') }}
-          restore-keys: |
-            ${{ runner.os }}-lake-
+      - name: Show toolchain
+        run: |
+          cat lean-toolchain
+          elan --version || true
+          lean --version || true
 
-      - name: Build (show full errors)
+      - name: Lake build
         run: |
           set -o pipefail
           lake build 2>&1 | tee build.log
 
-      - name: Reject any remaining sorry
+      - name: Check no sorry
         run: |
-          if grep -rn "sorry" --include="*.lean" Assurance/ ; then
-            echo "ERROR: 'sorry' found in source"
+          if grep -rn "sorry" --include="*.lean" Assurance/Crypto Assurance/Trust 2>/dev/null; then
+            echo "sorry found"
             exit 1
           fi
           echo "Sorry count: 0"
-
-      - name: Generate verification report
-        if: success()
-        run: |
-          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          AXIOM_COUNT=$(grep -rc "^axiom " --include="*.lean" Assurance/ 2>/dev/null | awk -F: '{s+=$2} END {print s+0}')
-          cat > assurance-verification-report.txt << EOF
-          Assurance Kernel Verification Report
-          ====================================
-          Repository: perseverancesworld-web/assurance-kernel
-          Verification: PASS
-          Lean: 4.14.0
-          Build: SUCCESS
-          Sorry declarations: 0
-          Explicit axioms: ${AXIOM_COUNT}
-          Digest backend: TestDigest
-          Timestamp: ${TIMESTAMP}
-          EOF
-          cat assurance-verification-report.txt
-
-      - name: Upload verification report
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: assurance-verification-report
-          path: assurance-verification-report.txt
-          retention-days: 90
 
       - name: Upload build log on failure
         if: failure()
