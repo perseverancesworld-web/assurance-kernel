@@ -16,18 +16,16 @@ def toBytes (d : TestDigest) : ByteArray :=
     UInt8.ofNat ((d / 16777216) % 256)
   ]
 
-/-- Fold bytes via size-based loop (stable across Lean versions). -/
 def hashBytes (ba : ByteArray) : TestDigest :=
-  let rec go (i : Nat) (h : Nat) : Nat :=
+  let rec go (i : Nat) (acc : Nat) : Nat :=
     if hlt : i < ba.size then
       let b := (ba.get ⟨i, hlt⟩).toNat
-      go (i + 1) ((h * 31 + b) % 1000000007)
+      go (i + 1) ((acc * 31 + b) % 1000000007)
     else
-      h
+      acc
   go 0 1
 
 instance : CryptographicDigest TestDigest where
-  eq_dec := inferInstance
   zero := zero
   toBytes := toBytes
   hashBytes := hashBytes

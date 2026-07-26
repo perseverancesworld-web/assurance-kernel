@@ -1,12 +1,11 @@
 namespace Assurance.Crypto
 
-class CryptographicDigest (Digest : Type) where
-  eq_dec : DecidableEq Digest
+/-- Digest interface. DecidableEq is a parameter (not a field) so
+    instances synthesize cleanly for Nat-backed test digests. -/
+class CryptographicDigest (Digest : Type) [DecidableEq Digest] where
   zero : Digest
   toBytes : Digest → ByteArray
   hashBytes : ByteArray → Digest
-
-attribute [instance] CryptographicDigest.eq_dec
 
 def bytesLt (a b : ByteArray) : Bool :=
   let rec go (i : Nat) : Bool :=
